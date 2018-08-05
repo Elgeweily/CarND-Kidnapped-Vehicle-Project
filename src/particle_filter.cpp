@@ -4,6 +4,7 @@
  *  Created on: Dec 12, 2016
  *      Author: Tiffany Huang
  */
+# define M_PI 3.14159265359
 
 #include <random>
 #include <algorithm>
@@ -154,6 +155,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		// associate transformed observations with nearest landmarks (within sensor range)
 		dataAssociation(in_range_landmarks, trans_observations);
 
+		double particle_weight = 1;
 		for (int l = 0; l < trans_observations.size(); l++) {
 			double obs_x = trans_observations[l].x;
 			double obs_y = trans_observations[l].y;
@@ -163,15 +165,15 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 					double landmark_y = in_range_landmarks[m].y;
 				}
 			}
-			// calculate distance between particle and associated landmark
-			double particle_dist = sqrt(pow((xp - landmark_x), 2) + pow((yp - landmark_y), 2));
 
-			// calculate observed (measured) distance
-			double observed_dist = sqrt(pow((xp - obs_x), 2) + pow((yp - obs_y), 2));
+			// update weights using multivariate Gaussian distribution equation
+			const double denom = 1 / (2 * M_PI * std_landmark[0] * std_landmark[1]);
+			const double x_denom = 2 * std_landmark[0] * std_landmark[0];
+			const double y_denom = 2 * std_landmark[1] * std_landmark[1];
+			particle_weight *= denom * exp(-((pow((obs_x - landmark_x), 2) / x_denom) + (pow((obs_y - landmark_y), 2) / y_denom)));
 		}
-
-		// update weights using Gaussian distribution
-		normal_distribution<double> dist(particle_dist, std_landmark[0]);
+		particles[i].weight = particle_weight;
+		weights[i] = particle_weight;
 	}
 }
 
